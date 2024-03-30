@@ -182,7 +182,7 @@ client.once('ready', (c) => {
     const chat_channel = client.channels.cache.get(chatid)
     if (!channel) {
         console.log(`I could not find the channel (${chat_channel})!`)
-    }x
+    }
 })
 
 client.on('messageCreate', (message) => {
