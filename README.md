@@ -1,0 +1,2 @@
+# VaultBot
+Mineflayer Vault System
