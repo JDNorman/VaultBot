@@ -154,7 +154,7 @@ client.on(Events.InteractionCreate, async interaction => {
         await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
       }
     }
-  
+
   });
 
 //PREFIX COMMAND HANDLER SETUP ----------------------------------------//
@@ -166,43 +166,98 @@ client.on(Events.InteractionCreate, async interaction => {
 // load discord.js
 const options = {
     host: '47.32.247.54',
-    port: 25566,
-    auth: 'microsoft',
-    username: 'dnorman1611@gmail.com'
+    port: 25566
 }
 
-// join server
-const bot = mineflayer.createBot(options)
-bot.on('spawn', () => {
-    console.log(`Mineflayer bot logged in as ${bot.username}`)
-})
+class MCBot {
 
-// when discord client is ready, send login message
-client.once('ready', (c) => {
-    const chat_channel = client.channels.cache.get(chatid)
-    if (!channel) {
-        console.log(`I could not find the channel (${chat_channel})!`)
-    }
-})
+  // Constructor
+  constructor(username) {
+      this.username = username;
+      this.host = botArgs["host"];
+      this.port = botArgs["port"];
 
-client.on('messageCreate', (message) => {
-    // only handle messages in specified channel
-    if (message.channel.id !== channel.id) return
-    // ignore messages from the bot itself
-    if (message.author.id === client.user.id) return
-    // console.log(message)
-    bot.chat(`${message.author.username}: ${message.content}`)
-})
+      this.initBot();
+  }
 
-// redirect in-game messages to discord channel
-bot.on('chat', (username, message) => {
-    const chat_channel = client.channels.cache.get(chatid)
+  // Init bot instance
+  initBot() {
+      this.bot = mineflayer.createBot({
+          "username": this.username,
+          "host": this.host,
+          "port": this.port,
+      });
 
-    // ignore messages from the bot itself
-    if (username === bot.username) return
+      this.initEvents()
+  }
 
-    chat_channel.send(`${username}: ${message}`)
-})
+  // Init bot events
+  initEvents() {
+      this.bot.on('login', () => {
+          let botSocket = this.bot._client.socket;
+          console.log(`[${this.username}] Logged in to ${botSocket.server ? botSocket.server : botSocket._host}`);
+      });
+
+      this.bot.on('end', (reason) => {
+          console.log(`[${this.username}] Disconnected: ${reason}`);
+  
+          if (reason == "disconnect.quitting") {
+              return
+          }
+  
+          // Attempt to reconnect
+          setTimeout(() => this.initBot(), 5000);
+      });
+
+      this.bot.on('spawn', async () => {
+          console.log(`[${this.username}] Spawned in`);
+          this.bot.chat("Hello!");
+  
+          await this.bot.waitForTicks(60);
+          this.bot.chat("Goodbye");
+          this.bot.quit();
+      });
+
+      this.bot.on('error', (err) => {
+          if (err.code == 'ECONNREFUSED') {
+              console.log(`[${this.username}] Failed to connect to ${err.address}:${err.port}`)
+          }
+          else {
+              console.log(`[${this.username}] Unhandled error: ${err}`);
+          }
+      });
+
+      client.once('ready', (c) => {
+        const chat_channel = client.channels.cache.get(chatid)
+        if (!channel) {
+          console.log(`I could not find the channel (${chat_channel})!`);
+        }
+      });
+
+      client.on('messageCreate', (msg) => {
+        if (msg.channel.id !== channel.id) return;
+        if (msg.author.id === client.user.id) return;
+        this.bot.chat(`${msg.author.username}: ${msg.content}`);
+      });
+
+      this.bot.on('chat', (username, msg) => {
+        
+      })
+
+  }
+}
+
+
+
+// // redirect in-game messages to discord channel
+// bot.on('chat', (username, message) => {
+//     const chat_channel = client.channels.cache.get(chatid)
+
+//     // ignore messages from the bot itself
+//     if (username === bot.username) return
+
+//     chat_channel.send(`${username}: ${message}`)
+// })
 
 bot.on('kicked', console.log)
 bot.on('error', console.log)
